@@ -1,0 +1,31 @@
+# secrets
+.env
+.env.local
+
+# python / uv
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# litellm runtime
+data/
+*.db
+*.sqlite
+*.sqlite3
+litellm.log
+*.log
+*.pid
+
+# editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# build
+dist/
+build/
+*.egg-info/

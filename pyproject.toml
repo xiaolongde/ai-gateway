@@ -1,0 +1,12 @@
+[project]
+name = "ai-gateway"
+version = "0.1.0"
+description = "Personal BYOA AI gateway based on LiteLLM Proxy. v1: self-use only."
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "litellm[proxy]>=1.50.0",
+    "python-dotenv>=1.0.0",
+]
+
+[tool.uv]
+package = false
