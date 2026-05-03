@@ -2,7 +2,11 @@
 # Convention: model_name = client-facing name; litellm_params.model = upstream provider/model
 
 model_list:
-  # === Anthropic Claude (core; needs ANTHROPIC_API_KEY) ===
+  # ====================================================
+  # === Direct API providers (need their own API key) ==
+  # ====================================================
+
+  # --- Anthropic (need ANTHROPIC_API_KEY) ---
   - model_name: claude-sonnet-4-6
     litellm_params:
       model: anthropic/claude-sonnet-4-6
@@ -18,7 +22,7 @@ model_list:
       model: anthropic/claude-haiku-4-5-20251001
       api_key: os.environ/ANTHROPIC_API_KEY
 
-  # === OpenAI (optional) ===
+  # --- OpenAI (need OPENAI_API_KEY) ---
   - model_name: gpt-4o
     litellm_params:
       model: openai/gpt-4o
@@ -29,7 +33,7 @@ model_list:
       model: openai/gpt-4o-mini
       api_key: os.environ/OPENAI_API_KEY
 
-  # === DeepSeek (CN provider, optional) ===
+  # --- DeepSeek (need DEEPSEEK_API_KEY) ---
   - model_name: deepseek-chat
     litellm_params:
       model: deepseek/deepseek-chat
@@ -39,6 +43,73 @@ model_list:
     litellm_params:
       model: deepseek/deepseek-reasoner
       api_key: os.environ/DEEPSEEK_API_KEY
+
+  # ====================================================
+  # === Subscription wrappers (no per-call charge if  ==
+  # === within plan; routed via local copilot-api)    ==
+  # ====================================================
+
+  # --- GitHub Copilot Pro via copilot-api on :4141 ---
+  # Naming: prefix `copilot/*` makes it clear which upstream is paying
+  - model_name: copilot/claude-sonnet-4.6
+    litellm_params:
+      model: openai/claude-sonnet-4.6
+      api_base: http://127.0.0.1:4141
+      api_key: dummy
+
+  - model_name: copilot/claude-opus-4.7
+    litellm_params:
+      model: openai/claude-opus-4.7
+      api_base: http://127.0.0.1:4141
+      api_key: dummy
+
+  - model_name: copilot/claude-haiku-4.5
+    litellm_params:
+      model: openai/claude-haiku-4.5
+      api_base: http://127.0.0.1:4141
+      api_key: dummy
+
+  - model_name: copilot/gpt-5.5
+    litellm_params:
+      model: openai/gpt-5.5
+      api_base: http://127.0.0.1:4141
+      api_key: dummy
+
+  - model_name: copilot/gpt-5.4
+    litellm_params:
+      model: openai/gpt-5.4
+      api_base: http://127.0.0.1:4141
+      api_key: dummy
+
+  - model_name: copilot/gpt-5-mini
+    litellm_params:
+      model: openai/gpt-5-mini
+      api_base: http://127.0.0.1:4141
+      api_key: dummy
+
+  - model_name: copilot/gpt-4o
+    litellm_params:
+      model: openai/gpt-4o
+      api_base: http://127.0.0.1:4141
+      api_key: dummy
+
+  - model_name: copilot/gemini-2.5-pro
+    litellm_params:
+      model: openai/gemini-2.5-pro
+      api_base: http://127.0.0.1:4141
+      api_key: dummy
+
+  - model_name: copilot/gemini-3.1-pro-preview
+    litellm_params:
+      model: openai/gemini-3.1-pro-preview
+      api_base: http://127.0.0.1:4141
+      api_key: dummy
+
+  - model_name: copilot/grok-code-fast-1
+    litellm_params:
+      model: openai/grok-code-fast-1
+      api_base: http://127.0.0.1:4141
+      api_key: dummy
 
 litellm_settings:
   drop_params: true
