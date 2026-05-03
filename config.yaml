@@ -111,6 +111,50 @@ model_list:
       api_base: http://127.0.0.1:4141
       api_key: dummy
 
+  # ====================================================
+  # === Anthropic-protocol clients (Claude Code etc.) ==
+  # === Routes /v1/messages -> copilot-api /v1/messages
+  # === No API key needed; pays via Copilot Pro plan.  =
+  # ====================================================
+  # Naming: kebab-case with -copilot suffix. Use these
+  # names when calling /v1/messages (Claude Code).
+
+  - model_name: claude-sonnet-4-6-copilot
+    litellm_params:
+      model: anthropic/claude-sonnet-4.6
+      api_base: http://127.0.0.1:4141
+      api_key: dummy
+
+  - model_name: claude-sonnet-4-5-copilot
+    litellm_params:
+      model: anthropic/claude-sonnet-4.5
+      api_base: http://127.0.0.1:4141
+      api_key: dummy
+
+  - model_name: claude-sonnet-4-copilot
+    litellm_params:
+      model: anthropic/claude-sonnet-4
+      api_base: http://127.0.0.1:4141
+      api_key: dummy
+
+  - model_name: claude-opus-4-7-copilot
+    litellm_params:
+      model: anthropic/claude-opus-4.7
+      api_base: http://127.0.0.1:4141
+      api_key: dummy
+
+  - model_name: claude-opus-4-5-copilot
+    litellm_params:
+      model: anthropic/claude-opus-4.5
+      api_base: http://127.0.0.1:4141
+      api_key: dummy
+
+  - model_name: claude-haiku-4-5-copilot
+    litellm_params:
+      model: anthropic/claude-haiku-4.5
+      api_base: http://127.0.0.1:4141
+      api_key: dummy
+
 litellm_settings:
   drop_params: true
   set_verbose: false
