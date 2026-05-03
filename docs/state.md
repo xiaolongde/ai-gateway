@@ -4,7 +4,7 @@ project: AI-Gateway
 active_backlog_item: 2026-05-03-mvp-litellm-deploy
 current_step: M0.6-observation-period
 blocked_at_gate: null
-last_commit: pending
+last_commit: 3eb8fb0
 last_push: null
 retry_count: 0
 started: 2026-05-03
