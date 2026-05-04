@@ -13,4 +13,6 @@
 - [[plans/2026-05-03-mvp-litellm-deploy|M0：本周部署 LiteLLM 自用]]
 
 ## 自测
-<!-- 待 M0 完成后补 -->
+- 入口：`node tests/smoke-test.js`（在 `D:\projects\ai-gateway\` 下跑，前置 `scripts\start-all.ps1`）
+- 用例清单：[[test-cases]]
+- 最近 QA 报告：[[qa-reports/2026-05-05-initial-smoke|2026-05-05 PASS 6/6]]
