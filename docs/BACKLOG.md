@@ -4,12 +4,22 @@
 
 ## 待开发
 
-- M1.5 NSSM Windows 服务化（开机自启 + crash 自愈 / 后台常驻）
-- M1.5 **copilot-api 进程崩溃自愈**：实测 ECONNRESET to api.github.com 时整个进程退出（即使有 NODE_USE_ENV_PROXY=1）。NSSM 的 auto-restart 或 PowerShell while-loop supervisor 二选一
-- M1.5 **LiteLLM admin UI**（启 Postgres + `STORE_MODEL_IN_DB=True` + `proxy_admin_password`）：原生 `:4000/ui` 登录、virtual key 签发、spend by model/user、request log 看板。和 NSSM 服务化合并实施（DB 也要进程托管）；落地后顺势满足 M2 "PKM cost 流水"的数据源
-- M2 Claude Code 默认 model 别名映射（如 `claude-sonnet-4-5-20250929` → `claude-sonnet-4-5-copilot`），让 Claude Code 不改 `ANTHROPIC_MODEL` 也能走 Copilot 流量
-- M2 评估 Claude Pro/Max 订阅多账号轮询（撞 Copilot Pro 限额 ≥ 3 次再做）
-- M2 评估 Obsidian/PKM 集成（每日 cost 流水写回 vault）
+### M1.5 · Friend-Polish（4 卡，由 [[plans/2026-05-05-friend-polish-admin-ui]] 拆出）
+
+- [[plans/2026-05-05-friend-polish-admin-ui]] · M1.5 主 plan
+- M1.5-1 LiteLLM admin UI 激活 + virtual key 工作流（Postgres/SQLite + `/ui` 登录 + key/budget API）
+- M1.5-2 copilot-api supervisor（30-50 行 PowerShell while-loop，自动恢复 ECONNRESET）
+- M1.5-3 Tailscale endpoint 暴露（朋友通过 tailnet 接入，不公网）
+- M1.5-4 朋友只读 cost mini-page（HTML + Chart.js + LiteLLM `/spend/logs`）
+
+### M2 · Future（撞墙再做）
+
+- M2 NSSM Windows 服务化（开机自启 + 后台常驻；M1.5 supervisor 是轻量替代）
+- M2 Claude Code 默认 model 别名映射（如 `claude-sonnet-4-5-20250929` → `claude-sonnet-4-5-copilot`）
+- M2 多 Copilot 账号轮询（撞 Copilot Pro 限额 ≥ 3 次再做；当前 P3=3b 单账号共享）
+- M2 实时计费 dashboard（M1.5 用 LiteLLM 自带日聚合即可）
+- M2 上游凭据 web 热加载（当前 `.env` + 重启在 < 13 模型规模下不痛）
+- M2 Obsidian/PKM 集成（每日 cost 流水写回 vault；M1.5 admin UI 是数据源）
 
 ## 进行中
 

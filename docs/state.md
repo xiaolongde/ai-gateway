@@ -1,15 +1,23 @@
 ---
 status: in-progress
 project: AI-Gateway
-active_backlog_item: 2026-05-03-mvp-litellm-deploy
-current_step: M0.6-observation-period
-blocked_at_gate: null
-last_commit: 3eb8fb0
+active_backlog_item: 2026-05-05-friend-polish-admin-ui
+current_step: M1.5-pre-flight
+blocked_at_gate: G7-pre-flight-persona-card
+last_commit: 9f1057a
 last_push: null
 retry_count: 0
 started: 2026-05-03
-updated: 2026-05-04
+updated: 2026-05-05
 ---
+
+## 范围变更（2026-05-05）
+
+立项 v1 "仅自用"前提已被 ADR `b13cb7a` 撤销 → office-hours v2 输出 [[designs/2026-05-05-design-v2]] APPROVED → 拆 plan [[plans/2026-05-05-friend-polish-admin-ui]] 4 卡。M0.6 七天观察期与 M1.5 并行（不冲突，观察数据反而成为新 wedge 的 baseline）。
+
+**G7 pre-flight blocker**：design doc 的 Target Persona 段 TODO 未填。autonomous-dev-loop 在用户填 persona 后才能进 BACKLOG-1。
+
+
 
 ## Context
 
