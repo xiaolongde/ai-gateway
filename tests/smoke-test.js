@@ -21,7 +21,6 @@
 
 'use strict';
 
-const { execSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -47,24 +46,26 @@ const MASTER_KEY = loadEnvVar('LITELLM_MASTER_KEY');
 const DATABASE_URL = loadEnvVar('DATABASE_URL');
 
 // ============================================================================
-// 阶段 1: 服务健康
+// 阶段 1: 服务健康（HTTP probe，Win/WSL/mirrored-mode 都适用）
 // ============================================================================
-function checkPortListening() {
+async function checkPortListening() {
     console.log('=== 阶段 1: 服务健康 ===');
-    let netstat;
-    try {
-        netstat = execSync('netstat -ano', { encoding: 'utf8' });
-    } catch (e) {
-        console.error('  ERR: netstat 失败:', e.message);
-        return false;
-    }
     let ok = true;
-    for (const [name, port] of [['LiteLLM', LITELLM_PORT], ['copilot-api', COPILOT_PORT]]) {
-        const re = new RegExp(`:${port}\\s+\\S+\\s+LISTENING`);
-        if (re.test(netstat)) {
-            console.log(`  PASS ${name} :${port} LISTENING`);
-        } else {
-            console.error(`  FAIL ${name} :${port} 未监听（先跑 scripts\\start-all.ps1）`);
+    const probes = [
+        ['LiteLLM', `${BASE}/health/liveness`, LITELLM_PORT],
+        ['copilot-api', `http://${HOST}:${COPILOT_PORT}/v1/models`, COPILOT_PORT],
+    ];
+    for (const [name, url, port] of probes) {
+        try {
+            const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
+            if (r.status >= 200 && r.status < 500) {
+                console.log(`  PASS ${name} :${port} 响应 ${r.status}`);
+            } else {
+                console.error(`  FAIL ${name} :${port} 状态码 ${r.status}`);
+                ok = false;
+            }
+        } catch (e) {
+            console.error(`  FAIL ${name} :${port} 不可达: ${e.message}（裸机: scripts\\start-all.ps1 / compose: docker compose up -d）`);
             ok = false;
         }
     }
@@ -235,20 +236,18 @@ async function checkCoreTraffic() {
 }
 
 // ============================================================================
-// 阶段 4: admin UI（条件 — 仅当 DATABASE_URL 配置）
+// 阶段 4: admin UI（条件 — 仅当 readiness 报告 db:connected，即 M1.5 Postgres 已上）
 // ============================================================================
 async function checkAdminUI() {
     console.log('=== 阶段 4: admin UI（条件） ===');
-    if (!DATABASE_URL) {
-        console.log('  SKIP: DATABASE_URL 未配置（M1.5 Postgres 未上）');
-        return true;
-    }
     let ok = true;
+    let readinessJson = null;
 
     // 4.1 readiness
     try {
         const r = await fetch(`${BASE}/health/readiness`);
         if (r.status === 200) {
+            readinessJson = await r.json();
             console.log('  PASS /health/readiness 200');
         } else {
             console.error(`  FAIL /health/readiness ${r.status}`);
@@ -257,6 +256,12 @@ async function checkAdminUI() {
     } catch (e) {
         console.error('  FAIL /health/readiness 异常:', e.message);
         ok = false;
+    }
+
+    // 条件检查：DB 没接 → 跳过 4.2 admin UI（裸机 venv 模式）
+    if (!readinessJson || readinessJson.db !== 'connected') {
+        console.log('  SKIP /ui: db 未连（裸机 venv 模式或 Postgres 未上）');
+        return ok;
     }
 
     // 4.2 admin UI assets
@@ -308,7 +313,7 @@ function checkCostPage() {
 // ============================================================================
 (async () => {
     const results = [];
-    results.push(checkPortListening());
+    results.push(await checkPortListening());
     results.push(await checkAuthRejection());
     results.push(await checkCoreTraffic());
     results.push(await checkAdminUI());

@@ -2,11 +2,11 @@
 status: in-progress
 project: AI-Gateway
 active_backlog_item: 2026-05-05-friend-polish-admin-ui
-current_step: M1.5-1-stack-running-firewall-blocked
-blocked_at_gate: G3-hyperv-wsl-firewall-needs-admin
+current_step: M1.5-1-stack-unstable-pending-user-decision
+blocked_at_gate: G4-stack-flaky-need-direction
 last_commit: 1c9c3f9
 last_push: null
-retry_count: 0
+retry_count: 5
 started: 2026-05-03
 updated: 2026-05-05
 ---
@@ -52,6 +52,26 @@ updated: 2026-05-05
 - 浏览器 `:4000/ui` 登录验证（admin / 见 `.env` `UI_PASSWORD`）
 - 用 admin UI 给林雅芝创建 virtual key（M1.5-2）
 - 我接着推 M1.5-3 / M1.5-4 文档收尾
+
+## 凌晨 2:30 复盘 — γ 路径不稳定，自主推进失败
+
+详见 [[qa-reports/2026-05-05-self-postmortem-failed-autonomy]]。
+
+**已确认事实**：
+- Hyper-V firewall rule `AI-Gateway` 已生效（admin script 跑过）
+- `.env` 已填强随机
+- compose stack 4 服务能 up，但 LiteLLM container 间歇性 ExitCode=0 退出 + 重启
+- Win 127.0.0.1:4000 偶尔 200，多数时间 502 (Clash 拦截) 或 000 (容器不在 listening)
+- smoke stage 1 已改 HTTP probe（不再 Windows-only）
+
+**未定位的 root cause**：LiteLLM container 在 detached `up -d` 模式下静默退出，foreground `compose run` 模式正常。`init/tty/stdin_open/healthcheck/--num_workers` 改了不知道哪个起作用，且不稳定。
+
+**G4 用户决策（不是多选题，是真正的 fork）**：
+1. **装 Docker Desktop 回归 γ-DD 路径**（推荐）— 绕过 WSL apt-docker + mirrored + Hyper-V firewall + Clash 多维问题
+2. **退回裸机 venv 模式**（`scripts\start-all.ps1`）— 缩水到 M0 版本，放弃 M1.5 admin UI / virtual key 价值
+3. **继续 γ-WSL 路径**，给我具体退出条件（如 1 小时内不能稳定 5 分钟连绿就放弃）
+
+我推 1。判断错了 γ-WSL 是"省 10 分钟"——实际代价是 3 小时折腾 + stack 不稳。
 
 
 
