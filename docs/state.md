@@ -2,9 +2,9 @@
 status: in-progress
 project: AI-Gateway
 active_backlog_item: 2026-05-05-friend-polish-admin-ui
-current_step: M1.5-1-docker-compose-stack
-blocked_at_gate: null
-last_commit: ce392a9
+current_step: M1.5-1-awaiting-docker-install
+blocked_at_gate: G2-user-install-docker-and-run-up
+last_commit: 1c9c3f9
 last_push: null
 retry_count: 0
 started: 2026-05-03
@@ -20,6 +20,23 @@ updated: 2026-05-05
 **G1 cleared 2026-05-05**：用户拍板 γ（Docker Desktop 本地 + 同 compose 部 VPS）。本月内迁 VPS。copilot-api 容器化 OK（首次跑要重走 device OAuth）。
 
 **M1.5 重组**：原 BACKLOG-2 (PS supervisor) 删除——Docker `restart: unless-stopped` 取代。新 4 卡：(1) docker-compose stack + admin UI；(2) virtual key 工作流；(3) Tailscale endpoint；(4) cost mini-page。详见更新后的 [[plans/2026-05-05-friend-polish-admin-ui]]。
+
+**今晚进度（2026-05-05）**：
+- ✅ Compose stack 全套写完：`docker-compose.yml` + `docker/copilot-api/Dockerfile` + `config.yaml` 改 `store_model_in_db=true` + `api_base` 参数化 + `.env.example` 全字段（commit `e1080b3`）
+- ✅ M1.5-4 cost.html 写完 + smoke stage 5 验证（commit `1c9c3f9`）
+- ✅ 裸机模式回归测试 PASS（6/6 + stage 4 SKIP + stage 5 2 PASS）
+
+**G2 blocker**：用户必须做的事
+1. 装 Docker Desktop
+2. fill `.env`（`POSTGRES_PASSWORD` / `UI_PASSWORD` 强随机）
+3. `docker compose build copilot-api`
+4. `docker compose run --rm copilot-api copilot-api auth`（GitHub OAuth）
+5. `docker compose up -d`
+6. 浏览器 `:4000/ui` 登录验证
+
+之后我能继续：M1.5-2 林雅芝 onboarding（在 admin UI 给她创建 vkey + 写文档化）+ M1.5-3 Tailscale（朋友配合）+ M1.5-4 收尾（mount cost.html 到合适位置 + 林雅芝实测）。
+
+**M1.5-2 supervisor (PS) 卡死**：删——Docker restart unless-stopped 取代。无需独立 supervisor 工程。
 
 
 
