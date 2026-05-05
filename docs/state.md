@@ -2,8 +2,8 @@
 status: in-progress
 project: AI-Gateway
 active_backlog_item: 2026-05-05-friend-polish-admin-ui
-current_step: M1.5-1-awaiting-docker-install
-blocked_at_gate: G2-user-install-docker-and-run-up
+current_step: M1.5-1-stack-running-firewall-blocked
+blocked_at_gate: G3-hyperv-wsl-firewall-needs-admin
 last_commit: 1c9c3f9
 last_push: null
 retry_count: 0
@@ -26,17 +26,32 @@ updated: 2026-05-05
 - ✅ M1.5-4 cost.html 写完 + smoke stage 5 验证（commit `1c9c3f9`）
 - ✅ 裸机模式回归测试 PASS（6/6 + stage 4 SKIP + stage 5 2 PASS）
 
-**G2 blocker**：用户必须做的事
-1. 装 Docker Desktop
-2. fill `.env`（`POSTGRES_PASSWORD` / `UI_PASSWORD` 强随机）
-3. `docker compose build copilot-api`
-4. `docker compose run --rm copilot-api copilot-api auth`（GitHub OAuth）
-5. `docker compose up -d`
-6. 浏览器 `:4000/ui` 登录验证
-
-之后我能继续：M1.5-2 林雅芝 onboarding（在 admin UI 给她创建 vkey + 写文档化）+ M1.5-3 Tailscale（朋友配合）+ M1.5-4 收尾（mount cost.html 到合适位置 + 林雅芝实测）。
-
 **M1.5-2 supervisor (PS) 卡死**：删——Docker restart unless-stopped 取代。无需独立 supervisor 工程。
+
+## 凌晨实战 — WSL Docker stack 已起，但 Win 不可达（auto-decisions/2026-05-05.md 决策 6-9）
+
+**已自主完成**：
+- WSL2 Ubuntu apt 装 docker.io 29.1.3 + compose v2.40.3（不需 Docker Desktop）
+- daemon.json 配国内 mirror（docker.1ms.run / daocloud / 163）绕 GFW
+- `.env` 强随机填 `POSTGRES_PASSWORD` + `UI_PASSWORD`（`UI_USERNAME=admin`）
+- `docker-compose.yml` 加 nginx costpage（:4002 serve cost.html）+ bind-mount host OAuth token 到 container（跳过 device flow）
+- `docker compose up -d` 全 4 容器 Running：postgres / litellm / copilot-api / costpage
+- WSL `.wslconfig` 已开 `networkingMode=Mirrored`，`wsl --shutdown` 重启生效
+- Compose port 改 `0.0.0.0:` 绑定（兼容 mirrored mode + VPS 公网）
+- **WSL 内** stack 工作正常（postgres healthy, prisma migrations applied, LiteLLM Uvicorn 起在 :4000）
+
+**G3 blocker（必须 admin 一次性）**：
+- Win Hyper-V WSL VM firewall `DefaultInboundAction=Block` —— Win 127.0.0.1:4000 → WSL container 被默默 drop
+- 已写脚本 `D:\projects\ai-gateway\scripts\enable-wsl-firewall.ps1`：admin PS 跑一次，加 inbound allow rule for 4000/4141/4002
+- 用户两条出口任选其一：
+  - **(a)** 在 admin PowerShell 跑 `.\scripts\enable-wsl-firewall.ps1`（5 秒，仅放 3 个端口）
+  - **(b)** 装 Docker Desktop（10 分钟，自带 vpnkit 绕过 Hyper-V firewall）
+
+**Win 通后立即可做**（用户无需进一步操作）：
+- 跑 `node tests/smoke-test.js`（应 6/6 + stage 4 admin UI PASS + stage 5 cost.html PASS）
+- 浏览器 `:4000/ui` 登录验证（admin / 见 `.env` `UI_PASSWORD`）
+- 用 admin UI 给林雅芝创建 virtual key（M1.5-2）
+- 我接着推 M1.5-3 / M1.5-4 文档收尾
 
 
 

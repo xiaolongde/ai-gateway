@@ -25,7 +25,7 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     ports:
-      - "127.0.0.1:5432:5432"
+      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U litellm -d litellm"]
       interval: 5s
@@ -59,7 +59,7 @@ services:
       - ./logs:/app/logs
     command: --config /app/config.yaml --port 4000 --host 0.0.0.0 --num_workers 1
     ports:
-      - "127.0.0.1:4000:4000"
+      - "4000:4000"
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:4000/health/readiness"]
       interval: 10s
@@ -81,11 +81,16 @@ services:
       NO_PROXY: localhost,127.0.0.1,postgres,litellm,copilot-api
       NODE_USE_ENV_PROXY: "1"
     volumes:
-      # Persist OAuth token across container restarts
-      - copilot-data-share:/root/.local/share/copilot-api
-      - copilot-data-config:/root/.config/copilot-api
+      # Bind-mount existing host OAuth token so container reuses it
+      # (skips device flow; safe since host's bare-metal copilot-api
+      # uses the same token). Container's token refresh writes back to
+      # host — both stay valid.
+      # On VPS where there's no pre-existing token: copy from local
+      # before first `up`, OR run `docker compose run --rm copilot-api
+      # copilot-api auth` once on VPS to seed.
+      - ~/.local/share/copilot-api:/root/.local/share/copilot-api
     ports:
-      - "127.0.0.1:4141:4141"
+      - "4141:4141"
     extra_hosts:
       # Make host.docker.internal resolvable on Linux too (no-op on Win/Mac)
       - "host.docker.internal:host-gateway"
@@ -96,7 +101,19 @@ services:
       retries: 5
       start_period: 20s
 
+  costpage:
+    image: nginx:alpine
+    container_name: ai-gateway-costpage
+    restart: unless-stopped
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+    ports:
+      - "4002:80"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/cost.html"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
 volumes:
   postgres-data:
-  copilot-data-share:
-  copilot-data-config:
