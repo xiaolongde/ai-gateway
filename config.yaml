@@ -54,61 +54,61 @@ model_list:
   - model_name: copilot/claude-sonnet-4.6
     litellm_params:
       model: openai/claude-sonnet-4.6
-      api_base: http://127.0.0.1:4141
+      api_base: os.environ/COPILOT_API_BASE
       api_key: dummy
 
   - model_name: copilot/claude-opus-4.7
     litellm_params:
       model: openai/claude-opus-4.7
-      api_base: http://127.0.0.1:4141
+      api_base: os.environ/COPILOT_API_BASE
       api_key: dummy
 
   - model_name: copilot/claude-haiku-4.5
     litellm_params:
       model: openai/claude-haiku-4.5
-      api_base: http://127.0.0.1:4141
+      api_base: os.environ/COPILOT_API_BASE
       api_key: dummy
 
   - model_name: copilot/gpt-5.5
     litellm_params:
       model: openai/gpt-5.5
-      api_base: http://127.0.0.1:4141
+      api_base: os.environ/COPILOT_API_BASE
       api_key: dummy
 
   - model_name: copilot/gpt-5.4
     litellm_params:
       model: openai/gpt-5.4
-      api_base: http://127.0.0.1:4141
+      api_base: os.environ/COPILOT_API_BASE
       api_key: dummy
 
   - model_name: copilot/gpt-5-mini
     litellm_params:
       model: openai/gpt-5-mini
-      api_base: http://127.0.0.1:4141
+      api_base: os.environ/COPILOT_API_BASE
       api_key: dummy
 
   - model_name: copilot/gpt-4o
     litellm_params:
       model: openai/gpt-4o
-      api_base: http://127.0.0.1:4141
+      api_base: os.environ/COPILOT_API_BASE
       api_key: dummy
 
   - model_name: copilot/gemini-2.5-pro
     litellm_params:
       model: openai/gemini-2.5-pro
-      api_base: http://127.0.0.1:4141
+      api_base: os.environ/COPILOT_API_BASE
       api_key: dummy
 
   - model_name: copilot/gemini-3.1-pro-preview
     litellm_params:
       model: openai/gemini-3.1-pro-preview
-      api_base: http://127.0.0.1:4141
+      api_base: os.environ/COPILOT_API_BASE
       api_key: dummy
 
   - model_name: copilot/grok-code-fast-1
     litellm_params:
       model: openai/grok-code-fast-1
-      api_base: http://127.0.0.1:4141
+      api_base: os.environ/COPILOT_API_BASE
       api_key: dummy
 
   # ====================================================
@@ -122,37 +122,37 @@ model_list:
   - model_name: claude-sonnet-4-6-copilot
     litellm_params:
       model: anthropic/claude-sonnet-4.6
-      api_base: http://127.0.0.1:4141
+      api_base: os.environ/COPILOT_API_BASE
       api_key: dummy
 
   - model_name: claude-sonnet-4-5-copilot
     litellm_params:
       model: anthropic/claude-sonnet-4.5
-      api_base: http://127.0.0.1:4141
+      api_base: os.environ/COPILOT_API_BASE
       api_key: dummy
 
   - model_name: claude-sonnet-4-copilot
     litellm_params:
       model: anthropic/claude-sonnet-4
-      api_base: http://127.0.0.1:4141
+      api_base: os.environ/COPILOT_API_BASE
       api_key: dummy
 
   - model_name: claude-opus-4-7-copilot
     litellm_params:
       model: anthropic/claude-opus-4.7
-      api_base: http://127.0.0.1:4141
+      api_base: os.environ/COPILOT_API_BASE
       api_key: dummy
 
   - model_name: claude-opus-4-5-copilot
     litellm_params:
       model: anthropic/claude-opus-4.5
-      api_base: http://127.0.0.1:4141
+      api_base: os.environ/COPILOT_API_BASE
       api_key: dummy
 
   - model_name: claude-haiku-4-5-copilot
     litellm_params:
       model: anthropic/claude-haiku-4.5
-      api_base: http://127.0.0.1:4141
+      api_base: os.environ/COPILOT_API_BASE
       api_key: dummy
 
 litellm_settings:
@@ -162,3 +162,6 @@ litellm_settings:
 
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
+  # M1.5: persist models / virtual keys / spend logs to Postgres so admin UI works.
+  # Requires DATABASE_URL env var pointing at running Postgres (see docker-compose.yml).
+  store_model_in_db: true

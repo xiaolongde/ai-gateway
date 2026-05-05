@@ -17,6 +17,8 @@ updated: 2026-05-05
 | 3.1 | `claude-opus-4-7-copilot` `/v1/messages` 非流式 | HTTP 200 + `content[0].text` 非空 + `model` 字段回显 | `checkAnthropicNonStream` |
 | 3.2 | `claude-sonnet-4-6-copilot` `/v1/messages` `stream=true` | SSE 含 6 类 event：`message_start` / `content_block_start` / `content_block_delta` / `content_block_stop` / `message_delta` / `message_stop` | `checkAnthropicStreaming` |
 | 3.3 | `copilot/claude-sonnet-4.6` `/v1/chat/completions` (OpenAI 协议) | HTTP 200 + `choices[0].message.content` 非空 | `checkOpenAICompletions` |
+| 4.1 | admin UI readiness（条件：.env 有 `DATABASE_URL`） | HTTP 200 from `/health/readiness` | `checkAdminUI` |
+| 4.2 | admin UI 入口（条件：.env 有 `DATABASE_URL`） | HTTP 200/3xx from `/ui` | `checkAdminUI` |
 
 ## 不在 smoke 范围（已知缺口）
 

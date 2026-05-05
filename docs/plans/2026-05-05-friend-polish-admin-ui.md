@@ -1,137 +1,159 @@
 ---
-status: backlog
+status: in-progress
 project: AI-Gateway
 type: plan
 updated: 2026-05-05
 design: "[[2026-05-05-design-v2]]"
+related:
+  - "[[2026-05-05-vps-deploy-target-impact]]"
 estimated_effort_human: "2-3 days"
 estimated_effort_cc: "2-3 hours"
 ---
 
-# M1.5 Plan: Friend-Polish Admin UI（Approach B）
+# M1.5 Plan: Friend-Polish Admin UI（Approach B + Docker stack）
 
 ## Goal
 
-落地 [[2026-05-05-design-v2]] 的 Approach B：LiteLLM admin UI + virtual key 隔离 + copilot-api supervisor + Tailscale endpoint + 朋友只读 cost mini-page。
+落地 [[2026-05-05-design-v2]] 的 Approach B 在 [[2026-05-05-vps-deploy-target-impact]] γ 路径下：用 docker-compose 起 Postgres + LiteLLM + copilot-api 全栈，朋友（林雅芝起手）通过 Tailscale 连本机；本月内迁同一份 compose 到 Linux VPS。
 
-让 Q3 那个具体朋友（persona TODO）今晚就能用 gateway，**不来 ping 用户问 cost**。
+## Pre-flight（用户在 BACKLOG-1 之前必做）
 
-## Pre-flight（用户必须先完成）
+- [ ] **装 Docker Desktop**（用户已 Y）
+- [ ] 复制 `.env.example` → `.env`，填：`POSTGRES_PASSWORD` / `UI_PASSWORD`（强随机）；保留已有 `LITELLM_MASTER_KEY` / `LITELLM_SALT_KEY`
+- [ ] 决定 N（本月给几张 key）：林雅芝 1 + 已凑合者 = ?，上限 5
 
-- [ ] **Persona 卡片**：[[2026-05-05-design-v2]] Target Persona 段的名字 / 角色 / 上次撞坍场景填掉。这是 Assignment 第一条，不补完别走 BACKLOG。
-- [ ] 选 DB backend：Postgres 本地服务 vs SQLite（看 LiteLLM 当前版本是否支持 single-instance SQLite for `STORE_MODEL_IN_DB=True`）。决策写到 BACKLOG-1 落地时。
-- [ ] 朋友 N 数量明确：当前 Q3 specific 1 人 + 已凑合中其他人 = ?。决定要发几张 virtual key（M1.5 上限 5 张，超过转 M2）。
+## BACKLOG（4 卡，supervisor 卡已删——Docker `restart: unless-stopped` 取代）
 
-## BACKLOG（4 卡，sweet spot 边缘）
-
-### BACKLOG-1 · LiteLLM admin UI 激活 + virtual key 工作流
+### BACKLOG-1 · docker-compose stack 全栈站起
 
 **Scope**：
-- 装 Postgres（或确认 SQLite 可用），写 `docker-compose.yml` 或 native install 步骤记到 README
-- `.env` 加 `DATABASE_URL` + `STORE_MODEL_IN_DB=True` + `UI_USERNAME=admin` + `UI_PASSWORD=<random 32-byte>`
-- `start-all.ps1` 加 Postgres 启动检测 + 等就绪
-- `smoke-test.js` 加阶段 4：admin UI `/health` 和 `/ui` 路径返回 200
-- 文档化 virtual key 创建步骤（README 加段："给朋友开 key"）
+- 已写：`docker-compose.yml`（Postgres 16-alpine + LiteLLM main-stable + 自建 copilot-api 镜像）+ `docker/copilot-api/Dockerfile`
+- 已改：`config.yaml` 加 `general_settings.store_model_in_db: true` + `api_base: os.environ/COPILOT_API_BASE`
+- 已改：`.env.example` 加 Postgres / UI / proxy 字段
+- **用户操作**：
+  1. `docker compose build copilot-api`
+  2. `docker compose run --rm copilot-api copilot-api auth`（GitHub device flow，跑一次拿 token，token 落 volume `copilot-data-share`）
+  3. `docker compose up -d`
+  4. 看 `docker compose logs litellm` 等 `Started server process` + `Application startup complete`
+  5. 浏览器 `http://127.0.0.1:4000/ui`，用 `UI_USERNAME` + `UI_PASSWORD` 登录
 
 **AC**：
-- `:4000/ui` 浏览器能打开 + 用 admin 账号登录
-- 通过 `/key/generate` API 能创建带 budget 的 virtual key
-- 用新创建的 virtual key 调 `/v1/messages` 通过；超 budget 后调用被拒（HTTP 429 + `BudgetExceededError`）
-- smoke-gate `node tests/smoke-test.js` 仍 PASS（含新阶段 4）
+- `docker compose ps` 三个 container 都 `Up (healthy)`
+- `:4000/ui` 能登录看到 admin 面板
+- `node tests/smoke-test.js` 6 case 仍 PASS（compose 起来后所有上游路径不变）
+- 新增 stage 4（admin UI readiness）PASS
 
-**Dependencies**：无
+**Dependencies**：Pre-flight 完成
 
-**Effort**：人 4-6h / CC 1h
+**Effort**：人 1h（含 Docker Desktop install + OAuth）/ CC 0（已写完代码）
 
 ---
 
-### BACKLOG-2 · copilot-api supervisor
+### BACKLOG-2 · admin UI virtual key 工作流（林雅芝 onboarding）
 
 **Scope**：
-- 写 `scripts/supervise.ps1`：30-50 行 while-loop，每 30s 检测 `:4141` LISTENING；掉了调 `start-all.ps1` 重起
-- 写 `logs/supervisor.log`，每次 detect / restart 加时间戳行
-- `start-all.ps1` 加可选 `-Supervise` flag，启动后 fork supervisor
+- 在 admin UI 创建 1 个 key 给林雅芝：限 `claude-sonnet-4-6-copilot` + `claude-opus-4-7-copilot` 两个 model；月 budget $20（保守）；TPM/RPM 默认
+- README 加段："给朋友开 key（5 步）"
+- 林雅芝那边：装 Tailscale → 拿 tailnet IP → 改 `ANTHROPIC_BASE_URL=http://<ip>:4000` + `ANTHROPIC_AUTH_TOKEN=<her_vkey>` → 跑一次 CC 验证
 
 **AC**：
-- 手动 `Stop-Process` 杀 copilot-api 后，supervisor 在 ≤ 60s 内恢复 `:4141`
-- supervisor.log 记录 detect → restart → resume 完整 cycle
+- 林雅芝从她机器调 1 次 `claude-opus-4-7-copilot` 返回 200
+- admin UI Spend 看板显示她的调用 + 当月累计 cost
+- 用她的 key 调 `claude-haiku-4-5-copilot`（不在白名单）→ 401/403
 
-**Dependencies**：BACKLOG-1 不需要（独立组件）
+**Dependencies**：BACKLOG-1 + BACKLOG-3 (Tailscale 上)
 
-**Effort**：人 2-3h / CC 30 分钟
+**Effort**：人 30 分钟（含等林雅芝配合）/ CC 5 分钟（README）
 
 ---
 
-### BACKLOG-3 · Tailscale endpoint 暴露
+### BACKLOG-3 · Tailscale endpoint
 
 **Scope**：
 - 用户机器装 Tailscale + 加入个人 tailnet
-- 朋友各自装 Tailscale 客户端 + 接受用户邀请加入 tailnet
-- 朋友配置：`ANTHROPIC_BASE_URL=http://<user-tailnet-ip>:4000`，`ANTHROPIC_AUTH_TOKEN=<friend's virtual key>`
-- README 加"朋友 onboarding"段：4 步装 Tailscale + 拿 key + 改 env vars + 验证
+- 林雅芝装 Tailscale + 接受用户邀请
+- 验证朋友机器能 `ping <user-tailnet-ip>` + `curl http://<ip>:4000/health`
+- README 加 "Tailscale onboarding（朋友侧 3 步）"
 
 **AC**：
-- 至少 1 个朋友（Q3 那位）从他自己的机器调 `:4000/v1/messages` 通过 tailnet 成功，返回 200
-- 关掉 Tailscale 后调用失败（验证未公网暴露）
+- 林雅芝 Tailscale 状态 connected
+- 朋友机器 `curl :4000/health` 返回 200
+- 关掉 Tailscale 朋友 curl 失败
 
-**Dependencies**：BACKLOG-1（virtual key 已发）
+**Dependencies**：无（与 BACKLOG-1 并行）
 
-**Effort**：人 2h（含等朋友配合）/ CC 5 分钟（doc 就行）
+**Effort**：人 30 分钟（朋友配合）/ CC 0
 
 ---
 
 ### BACKLOG-4 · 只读 cost mini-page
 
 **Scope**：
-- 写 `web/cost.html`（50 行）：plain HTML + Chart.js（CDN 引）+ 一个 fetch
-- 拉 `:4000/spend/logs?api_key=<friend_virtual_key>` 端点（LiteLLM 内置）
-- 显示：当月累计 spend、当月 budget、余量、每日 spend 折线图（最近 30 天）
-- 鉴权：URL 带 friend's virtual key 作为 query param（朋友自己保密 URL；简单粗暴但够用 for friends-only scope）
-- 用 LiteLLM 已有的 static file 能力 mount，或单独跑 `python -m http.server` on `:4002`
-- 加 stage 5 到 smoke-test.js：`/cost.html` 返回 200 + 含 "Chart" 字符串
+- 写 `web/cost.html`（50 行）：plain HTML + Chart.js (CDN) + fetch
+- 拉 `:4000/spend/logs?api_key=<friend_vkey>` (LiteLLM 内置)
+- 显示：当月累计 spend、当月 budget、余量、最近 30 天 spend 折线
+- 鉴权：URL `?key=<vkey>` query param（friends-only scope 够用）
+- 服务方式：单独跑 `python -m http.server :4002` on host，或挂 LiteLLM 静态目录（看哪个更简）
+- smoke stage 5：`/cost.html` 200 + 含 "Chart.js"
 
 **AC**：
-- Q3 那位朋友打开 `http://<tailnet-ip>:4002/cost.html?key=<his-vkey>` 能看到他自己的 spend 卡片
-- 看不到其他朋友的 spend（query param 鉴权能 isolate）
-- 配额触顶时显示红色 warning bar
+- 林雅芝 `http://<tailnet-ip>:4002/cost.html?key=<her-vkey>` 能看到自己的 spend
+- 用错 key 看不到（API 返回 empty）
+- 配额接近触顶时显示红色 warning
 
 **Dependencies**：BACKLOG-1（virtual key + LiteLLM `/spend/logs` 启用）+ BACKLOG-3（Tailscale）
 
-**Effort**：人 3-4h / CC 1h
+**Effort**：人 2-3h / CC 1h
 
 ---
 
+## VPS Migration（M1.6，本月内）
+
+同一份 `docker-compose.yml`：
+
+1. 买 VPS（Hetzner cax21 €4.5/月 / Vultr / 阿里轻量），ssh 进去
+2. `apt install docker.io docker-compose-plugin`
+3. `git clone` 项目（或 scp 上传）
+4. `.env` 重新填一份（POSTGRES_PASSWORD 等可复用，KEY 重新生成）
+5. `docker compose build copilot-api && docker compose run --rm copilot-api copilot-api auth`（VPS 上重走 OAuth）
+6. `docker compose up -d`
+7. 朋友改 base URL 指 VPS 公网 IP（443 + Caddy/nginx 反代加 TLS，或暂用 IP:4000）
+8. tailnet 上的本机 stack 关掉（`docker compose down`）
+
+**未解决** (M1.6 plan 时再答)：
+- VPS 走 GitHub Copilot OAuth 是否触发账号异常检测（xiaolongde Copilot Pro 之前只从家庭 IP 调用）
+- TLS / domain / 反代选型（Caddy 一行配 TLS 最简）
+- 朋友 Tailscale 是否仍要装（VPS 公网 IP + virtual key 限额已是足够防线，可去 Tailscale 简化朋友）
+
 ## Test Strategy
 
-- **Smoke**：扩展现有 `tests/smoke-test.js`，加阶段 4（admin UI health）+ 阶段 5（cost.html 可访问）
-- **Acceptance per card**：每卡 AC 段。M1.5 完成 = 4 张卡 AC 全过 + smoke gate 全绿
-- **End-to-end 验收**：朋友实际从自己机器调 1 次 + 从 cost.html 看到这次调用的 spend
+- **Smoke**：扩展 `tests/smoke-test.js`：
+  - stage 4 (admin UI)：如果 .env 有 DATABASE_URL → 检 `:4000/health/readiness` 200 + `:4000/ui` 200；否则 SKIP
+  - stage 5 (cost.html)：如果 `web/cost.html` 存在 → 检 `:4002/cost.html` 200；否则 SKIP
+- **每卡 AC**：BACKLOG-N 段
+- **End-to-end 验收**：林雅芝实际跑 1 次 + 看到她自己 cost.html
 
-## Success Criteria（complete 完整定义，对齐 design doc）
+## Success Criteria（M1.5 完成定义，对齐 design doc）
 
-1. ✅ 至少 1 个朋友（Q3）通过 gateway 实际跑通
-2. ✅ 朋友能从一个 URL 看到自己当月消耗 / 配额 / 余量
-3. ✅ supervisor 在 2 周内自动恢复 ≥ 1 次 ECONNRESET
-4. ✅ 朋友 0 次因 cost 问题 ping 用户
+1. ✅ 林雅芝通过 gateway 实际跑通
+2. ✅ 林雅芝能从 cost.html 看到当月消耗 / 配额 / 余量
+3. ✅ Docker `restart: unless-stopped` 替代 supervisor——容器 crash 自动重起 ≥ 1 次（不需要单独 supervisor 卡）
+4. ✅ 林雅芝 0 次因 cost ping 用户
 
 ## Risks & Rollback
 
 | 风险 | 缓解 |
 |---|---|
-| LiteLLM SQLite 不支持 → 必须装 Postgres | BACKLOG-1 先验证；不支持则文档化 Docker Postgres install，5 分钟搞定 |
-| Tailscale 朋友 onboarding 摩擦大（朋友懒得装） | 反馈给 retro。如果 ≥ 2 朋友拒绝装，考虑 v1.6 加 Cloudflare Tunnel + Basic Auth fallback |
-| LiteLLM `/spend/logs` API 被 master_key 鉴权 | BACKLOG-4 落地时验证；如果 virtual key 看不到自己的 spend，需要写一个反代 endpoint（+1 卡）|
-| Postgres 落到本机 → 占内存 + 多一个进程要 supervise | 单实例 Postgres ~50MB，可接受。M2 评估 NSSM + 全量服务化 |
+| Docker Desktop 装失败 / 占资源太大 | 退回 [[2026-05-05-vps-deploy-target-impact]] α 路径，写 PS install。代价：M1.5 throw-away 1 天 |
+| copilot-api OAuth 在 container 重走失败 | container 内 token 路径未必和 npm-on-Windows 一致 → 实测，必要时改 Dockerfile |
+| LiteLLM `main-stable` 镜像 prisma migrate 失败 | pin 到 `:v1.83.14-stable` 已验证版本；`docker compose logs litellm` 看 prisma 输出 |
+| host Clash :7897 不在 → copilot-api 出不去 | 用户已确认 Clash 常开。失败时 .env 加 COPILOT_HTTP_PROXY 显式指；或 VPS 海外阶段走自然出口 |
 
-**Abort criteria**（M1.5 完结 4 周后任一发生）：
-- 朋友未实际使用 gateway
-- 自己回到共享 master_key 的旧路径
-- 还在写 web 界面没出货
+**Abort criteria**（M1.5 完结 4 周后任一发生）→ 退到 Approach A 子集。
 
-→ 退到 Approach A 子集（admin UI + virtual key，无 cost mini-page），承认 P2 SLA 在 1-3 年视野下不够 ROI。
+## Next steps
 
-## Next steps after this plan APPROVED
-
-1. **现在**：commit 本 plan，BACKLOG.md 补 4 张卡的 wikilink，state.md `active_backlog_item` 切到 `2026-05-05-friend-polish-admin-ui`
-2. **执行**：进 `superpowers:subagent-driven-development`，按 BACKLOG-1 → BACKLOG-2 → BACKLOG-3 → BACKLOG-4 顺序跑
-3. **每卡完成**：commit + smoke-gate；M1.5 整体完成后跑 `/ship` 出 PR（这个项目无 GitHub remote，本地 commit 即"ship"）
+1. **现在**：commit M1.5-1 准备物（compose / Dockerfile / config 改动 / .env.example / plan + BACKLOG 重组）
+2. **用户操作**：装 Docker Desktop → fill .env → `docker compose build` → OAuth → `up -d`
+3. **执行**：BACKLOG-1 AC 验完后 → BACKLOG-3 Tailscale → BACKLOG-2 林雅芝 onboard → BACKLOG-4 cost page
+4. **本月**：起 M1.6 VPS migration plan

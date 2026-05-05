@@ -4,17 +4,26 @@
 
 ## 待开发
 
-### M1.5 · Friend-Polish（4 卡，由 [[plans/2026-05-05-friend-polish-admin-ui]] 拆出）
+### M1.5 · Friend-Polish（4 卡，[[plans/2026-05-05-friend-polish-admin-ui]] / Docker-stack 路径）
 
 - [[plans/2026-05-05-friend-polish-admin-ui]] · M1.5 主 plan
-- M1.5-1 LiteLLM admin UI 激活 + virtual key 工作流（Postgres/SQLite + `/ui` 登录 + key/budget API）
-- M1.5-2 copilot-api supervisor（30-50 行 PowerShell while-loop，自动恢复 ECONNRESET）
-- M1.5-3 Tailscale endpoint 暴露（朋友通过 tailnet 接入，不公网）
+- M1.5-1 docker-compose stack 全栈站起（Postgres + LiteLLM + copilot-api + admin UI）
+- M1.5-2 admin UI virtual key 工作流（林雅芝 onboarding，README 文档化）
+- M1.5-3 Tailscale endpoint 暴露（朋友通过 tailnet 接入；本月内迁 VPS 后可去）
 - M1.5-4 朋友只读 cost mini-page（HTML + Chart.js + LiteLLM `/spend/logs`）
+
+> ~~M1.5 copilot-api supervisor (PS while-loop)~~ — **删**。Docker `restart: unless-stopped` 替代。
+
+### M1.6 · VPS migration（本月内）
+
+- M1.6-1 买 VPS（Hetzner / Vultr / 阿里轻量）
+- M1.6-2 同 `docker-compose.yml` 部到 VPS
+- M1.6-3 VPS 上 GitHub Copilot OAuth 重走（监 xiaolongde 账号是否触发异常检测）
+- M1.6-4 TLS / 反代 (Caddy) + 朋友 base URL 切换到公网
 
 ### M2 · Future（撞墙再做）
 
-- M2 NSSM Windows 服务化（开机自启 + 后台常驻；M1.5 supervisor 是轻量替代）
+- M2 NSSM Windows 服务化（已不需要——γ 路径放弃 Windows native 部署）
 - M2 Claude Code 默认 model 别名映射（如 `claude-sonnet-4-5-20250929` → `claude-sonnet-4-5-copilot`）
 - M2 多 Copilot 账号轮询（撞 Copilot Pro 限额 ≥ 3 次再做；当前 P3=3b 单账号共享）
 - M2 实时计费 dashboard（M1.5 用 LiteLLM 自带日聚合即可）

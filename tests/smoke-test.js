@@ -9,6 +9,9 @@
 //   3.1 Anthropic 协议非流式 (Claude Code 主路径)
 //   3.2 Anthropic 协议 streaming SSE
 //   3.3 OpenAI 协议非流式 (Cursor 主路径)
+// 阶段 4: 条件检查 — admin UI（仅当 .env 有 DATABASE_URL 时跑）
+//   4.1 /health/readiness 200 + DB connected
+//   4.2 /ui 200
 //
 // Usage: node tests/smoke-test.js
 // 退出码: 0 = PASS, 1 = FAIL
@@ -25,18 +28,20 @@ const LITELLM_PORT = 4000;
 const COPILOT_PORT = 4141;
 const BASE = `http://${HOST}:${LITELLM_PORT}`;
 
-function loadMasterKey() {
-    if (process.env.LITELLM_MASTER_KEY) return process.env.LITELLM_MASTER_KEY;
+function loadEnvVar(name) {
+    if (process.env[name]) return process.env[name];
     const envFile = path.join(ROOT, '.env');
     if (!fs.existsSync(envFile)) return null;
+    const re = new RegExp(`^${name}\\s*=\\s*(.+)$`);
     for (const line of fs.readFileSync(envFile, 'utf8').split(/\r?\n/)) {
-        const m = line.match(/^LITELLM_MASTER_KEY\s*=\s*(.+)$/);
+        const m = line.match(re);
         if (m) return m[1].trim().replace(/^['"]|['"]$/g, '');
     }
     return null;
 }
 
-const MASTER_KEY = loadMasterKey();
+const MASTER_KEY = loadEnvVar('LITELLM_MASTER_KEY');
+const DATABASE_URL = loadEnvVar('DATABASE_URL');
 
 // ============================================================================
 // 阶段 1: 服务健康
@@ -227,6 +232,48 @@ async function checkCoreTraffic() {
 }
 
 // ============================================================================
+// 阶段 4: admin UI（条件 — 仅当 DATABASE_URL 配置）
+// ============================================================================
+async function checkAdminUI() {
+    console.log('=== 阶段 4: admin UI（条件） ===');
+    if (!DATABASE_URL) {
+        console.log('  SKIP: DATABASE_URL 未配置（M1.5 Postgres 未上）');
+        return true;
+    }
+    let ok = true;
+
+    // 4.1 readiness
+    try {
+        const r = await fetch(`${BASE}/health/readiness`);
+        if (r.status === 200) {
+            console.log('  PASS /health/readiness 200');
+        } else {
+            console.error(`  FAIL /health/readiness ${r.status}`);
+            ok = false;
+        }
+    } catch (e) {
+        console.error('  FAIL /health/readiness 异常:', e.message);
+        ok = false;
+    }
+
+    // 4.2 admin UI assets
+    try {
+        const r = await fetch(`${BASE}/ui`, { redirect: 'manual' });
+        // /ui 通常是 SPA 入口，可能 200 (StaticFiles 直 index.html) 或 307/308 重定向
+        if (r.status === 200 || (r.status >= 300 && r.status < 400)) {
+            console.log(`  PASS /ui ${r.status}`);
+        } else {
+            console.error(`  FAIL /ui ${r.status}`);
+            ok = false;
+        }
+    } catch (e) {
+        console.error('  FAIL /ui 异常:', e.message);
+        ok = false;
+    }
+    return ok;
+}
+
+// ============================================================================
 // Main
 // ============================================================================
 (async () => {
@@ -234,6 +281,7 @@ async function checkCoreTraffic() {
     results.push(checkPortListening());
     results.push(await checkAuthRejection());
     results.push(await checkCoreTraffic());
+    results.push(await checkAdminUI());
 
     const allPass = results.every(Boolean);
     console.log('');

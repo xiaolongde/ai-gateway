@@ -1,0 +1,102 @@
+# AI-Gateway compose stack
+# Same file works on:
+#   - Windows + Docker Desktop (current dev box)
+#   - Linux VPS (M1.6 migration target)
+#
+# First run:
+#   1. Fill .env (POSTGRES_PASSWORD, UI_PASSWORD, etc — see .env.example)
+#   2. docker compose build copilot-api
+#   3. docker compose run --rm copilot-api copilot-api auth   # GitHub device OAuth
+#   4. docker compose up -d
+#   5. Open http://127.0.0.1:4000/ui   (login: $UI_USERNAME / $UI_PASSWORD)
+#
+# Daily:
+#   docker compose up -d   /   docker compose down   /   docker compose logs -f litellm
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai-gateway-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: litellm
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+      POSTGRES_DB: litellm
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U litellm -d litellm"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    container_name: ai-gateway-litellm
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://litellm:${POSTGRES_PASSWORD}@postgres:5432/litellm
+      STORE_MODEL_IN_DB: "True"
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
+      LITELLM_SALT_KEY: ${LITELLM_SALT_KEY:?LITELLM_SALT_KEY required}
+      UI_USERNAME: ${UI_USERNAME:-admin}
+      UI_PASSWORD: ${UI_PASSWORD:?UI_PASSWORD required for /ui login}
+      # Upstream API keys (optional — fill what you have)
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      # Internal upstreams: copilot-api over compose-network DNS
+      COPILOT_API_BASE: http://copilot-api:4141
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: utf-8
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./logs:/app/logs
+    command: --config /app/config.yaml --port 4000 --host 0.0.0.0 --num_workers 1
+    ports:
+      - "127.0.0.1:4000:4000"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:4000/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+
+  copilot-api:
+    build:
+      context: ./docker/copilot-api
+    container_name: ai-gateway-copilot-api
+    restart: unless-stopped
+    environment:
+      # Bridge to host's Clash proxy so api.github.com reachable from container
+      # On Docker Desktop (Windows/Mac), host.docker.internal points to host
+      # On Linux VPS overseas, leave proxy vars blank
+      HTTP_PROXY: ${COPILOT_HTTP_PROXY:-}
+      HTTPS_PROXY: ${COPILOT_HTTPS_PROXY:-}
+      NO_PROXY: localhost,127.0.0.1,postgres,litellm,copilot-api
+      NODE_USE_ENV_PROXY: "1"
+    volumes:
+      # Persist OAuth token across container restarts
+      - copilot-data-share:/root/.local/share/copilot-api
+      - copilot-data-config:/root/.config/copilot-api
+    ports:
+      - "127.0.0.1:4141:4141"
+    extra_hosts:
+      # Make host.docker.internal resolvable on Linux too (no-op on Win/Mac)
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:4141/v1/models"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  postgres-data:
+  copilot-data-share:
+  copilot-data-config:
