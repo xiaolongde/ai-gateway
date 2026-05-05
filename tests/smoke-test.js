@@ -12,6 +12,9 @@
 // 阶段 4: 条件检查 — admin UI（仅当 .env 有 DATABASE_URL 时跑）
 //   4.1 /health/readiness 200 + DB connected
 //   4.2 /ui 200
+// 阶段 5: 条件检查 — cost.html 静态结构（仅当 web/cost.html 存在时跑）
+//   5.1 含 Chart.js CDN 引用
+//   5.2 引用 /spend/logs endpoint
 //
 // Usage: node tests/smoke-test.js
 // 退出码: 0 = PASS, 1 = FAIL
@@ -274,6 +277,33 @@ async function checkAdminUI() {
 }
 
 // ============================================================================
+// 阶段 5: cost.html 静态结构（条件 — 仅当 web/cost.html 存在）
+// ============================================================================
+function checkCostPage() {
+    console.log('=== 阶段 5: cost.html 静态结构（条件） ===');
+    const f = path.join(ROOT, 'web', 'cost.html');
+    if (!fs.existsSync(f)) {
+        console.log('  SKIP: web/cost.html 不存在');
+        return true;
+    }
+    const html = fs.readFileSync(f, 'utf8');
+    let ok = true;
+    if (html.toLowerCase().includes('chart.js')) {
+        console.log('  PASS web/cost.html 含 Chart.js CDN 引用');
+    } else {
+        console.error('  FAIL web/cost.html 缺 Chart.js');
+        ok = false;
+    }
+    if (html.includes('/spend/logs')) {
+        console.log('  PASS web/cost.html 引用 /spend/logs endpoint');
+    } else {
+        console.error('  FAIL web/cost.html 不调 /spend/logs');
+        ok = false;
+    }
+    return ok;
+}
+
+// ============================================================================
 // Main
 // ============================================================================
 (async () => {
@@ -282,6 +312,7 @@ async function checkAdminUI() {
     results.push(await checkAuthRejection());
     results.push(await checkCoreTraffic());
     results.push(await checkAdminUI());
+    results.push(checkCostPage());
 
     const allPass = results.every(Boolean);
     console.log('');

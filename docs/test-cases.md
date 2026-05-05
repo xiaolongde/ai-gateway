@@ -19,6 +19,8 @@ updated: 2026-05-05
 | 3.3 | `copilot/claude-sonnet-4.6` `/v1/chat/completions` (OpenAI 协议) | HTTP 200 + `choices[0].message.content` 非空 | `checkOpenAICompletions` |
 | 4.1 | admin UI readiness（条件：.env 有 `DATABASE_URL`） | HTTP 200 from `/health/readiness` | `checkAdminUI` |
 | 4.2 | admin UI 入口（条件：.env 有 `DATABASE_URL`） | HTTP 200/3xx from `/ui` | `checkAdminUI` |
+| 5.1 | cost.html 含 Chart.js 引用（条件：`web/cost.html` 存在） | 文件含 "chart.js" | `checkCostPage` |
+| 5.2 | cost.html 引用 `/spend/logs`（条件：同上） | 文件含 "/spend/logs" | `checkCostPage` |
 
 ## 不在 smoke 范围（已知缺口）
 

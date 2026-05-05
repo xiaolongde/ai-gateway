@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>AI-Gateway · 我的消耗</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+         max-width: 760px; margin: 2em auto; padding: 0 1em; color: #222; }
+  h1 { font-size: 1.4em; margin-bottom: .2em; }
+  .sub { color: #888; margin-bottom: 1.5em; font-size: .9em; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 1.5em; }
+  .card { padding: 1em; border: 1px solid #e0e0e0; border-radius: 8px; background: #fafafa; }
+  .card .lbl { color: #666; font-size: .8em; text-transform: uppercase; letter-spacing: .03em; }
+  .card .val { font-size: 1.6em; font-weight: 600; margin-top: .2em; }
+  .card.warn { background: #fef0f0; border-color: #f0c0c0; }
+  .card.warn .val { color: #c00; }
+  #err { color: #c00; padding: 1em; background: #fef0f0; border-radius: 6px; display: none; }
+  canvas { max-width: 100%; }
+  footer { margin-top: 2em; font-size: .8em; color: #999; border-top: 1px solid #eee; padding-top: 1em; }
+</style>
+</head>
+<body>
+
+<h1>AI-Gateway · 我的消耗</h1>
+<div class="sub" id="key-tag"></div>
+
+<div id="err"></div>
+
+<div class="cards">
+  <div class="card">
+    <div class="lbl">本月累计</div>
+    <div class="val" id="month-spend">—</div>
+  </div>
+  <div class="card" id="budget-card">
+    <div class="lbl">月度预算</div>
+    <div class="val" id="month-budget">—</div>
+  </div>
+  <div class="card" id="remain-card">
+    <div class="lbl">余量</div>
+    <div class="val" id="month-remain">—</div>
+  </div>
+</div>
+
+<canvas id="chart" height="120"></canvas>
+
+<footer>
+  数据源：LiteLLM <code>/spend/logs</code> + <code>/key/info</code>。每次刷新页面拉一次。
+  <br>
+  问题反馈：找网关运维人。
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(async function () {
+  const params = new URLSearchParams(location.search);
+  const key = params.get('key');
+  const base = params.get('base') || (location.protocol + '//' + location.hostname + ':4000');
+  const errEl = document.getElementById('err');
+
+  function fail(msg) { errEl.style.display = 'block'; errEl.textContent = msg; }
+
+  if (!key) { fail('URL 缺 ?key=<your virtual key>'); return; }
+  document.getElementById('key-tag').textContent = 'key: ' + key.slice(0, 12) + '… · gateway: ' + base;
+
+  const headers = { 'Authorization': 'Bearer ' + key };
+
+  // -- key info (budget) --
+  let budget = null, spent = null;
+  try {
+    const r = await fetch(base + '/key/info?key=' + encodeURIComponent(key), { headers });
+    if (r.ok) {
+      const j = await r.json();
+      const info = j.info || j;
+      budget = info.max_budget;
+      spent = info.spend;
+    }
+  } catch (e) { /* fall through, /spend/logs 也能算 */ }
+
+  // -- spend logs (last 30 days, daily summary) --
+  const today = new Date();
+  const start = new Date(today);
+  start.setDate(start.getDate() - 30);
+  const fmt = d => d.toISOString().slice(0, 10);
+
+  let logs = [];
+  try {
+    const url = base + '/spend/logs?api_key=' + encodeURIComponent(key)
+              + '&start_date=' + fmt(start) + '&end_date=' + fmt(today)
+              + '&summarize=true';
+    const r = await fetch(url, { headers });
+    if (!r.ok) { fail('GET /spend/logs ' + r.status + ' — 检查 key 有效 + gateway 在线'); return; }
+    logs = await r.json();
+  } catch (e) { fail('网络错误: ' + e.message); return; }
+
+  // -- aggregate --
+  const byDate = {};
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(today); d.setDate(d.getDate() - i);
+    byDate[fmt(d)] = 0;
+  }
+  for (const row of (Array.isArray(logs) ? logs : [])) {
+    const date = (row.startTime || row.date || '').slice(0, 10);
+    if (date in byDate) byDate[date] += (row.spend || 0);
+  }
+  const labels = Object.keys(byDate).sort();
+  const data = labels.map(d => byDate[d]);
+
+  // 当月累计：按月份过滤（spend logs 含本月所有，回退到 30 天 sum）
+  const monthPrefix = today.toISOString().slice(0, 7);
+  let monthSpend = 0;
+  for (const d of labels) {
+    if (d.startsWith(monthPrefix)) monthSpend += byDate[d];
+  }
+  if (spent !== null && spent !== undefined) monthSpend = spent;
+
+  document.getElementById('month-spend').textContent = '$' + monthSpend.toFixed(4);
+
+  if (budget !== null && budget !== undefined && budget > 0) {
+    document.getElementById('month-budget').textContent = '$' + budget.toFixed(2);
+    const remain = budget - monthSpend;
+    const remainEl = document.getElementById('month-remain');
+    remainEl.textContent = '$' + remain.toFixed(4);
+    if (remain < budget * 0.1) document.getElementById('remain-card').classList.add('warn');
+  } else {
+    document.getElementById('month-budget').textContent = '不限';
+    document.getElementById('month-remain').textContent = '—';
+  }
+
+  // -- chart --
+  new Chart(document.getElementById('chart'), {
+    type: 'line',
+    data: {
+      labels: labels.map(d => d.slice(5)),
+      datasets: [{ label: '每日 spend ($)', data, fill: true, tension: 0.2 }]
+    },
+    options: {
+      scales: { y: { beginAtZero: true } },
+      plugins: { legend: { display: false } }
+    }
+  });
+})();
+</script>
+</body>
+</html>
