@@ -2,9 +2,9 @@
 status: in-progress
 project: AI-Gateway
 active_backlog_item: 2026-05-05-friend-polish-admin-ui
-current_step: M1.5-pre-flight
-blocked_at_gate: G7-pre-flight-persona-card
-last_commit: 9f1057a
+current_step: M1.5-pre-implementation
+blocked_at_gate: G1-deployment-target-decision
+last_commit: eec7ef2
 last_push: null
 retry_count: 0
 started: 2026-05-03
@@ -15,7 +15,9 @@ updated: 2026-05-05
 
 立项 v1 "仅自用"前提已被 ADR `b13cb7a` 撤销 → office-hours v2 输出 [[designs/2026-05-05-design-v2]] APPROVED → 拆 plan [[plans/2026-05-05-friend-polish-admin-ui]] 4 卡。M0.6 七天观察期与 M1.5 并行（不冲突，观察数据反而成为新 wedge 的 baseline）。
 
-**G7 pre-flight blocker**：design doc 的 Target Persona 段 TODO 未填。autonomous-dev-loop 在用户填 persona 后才能进 BACKLOG-1。
+**G7 cleared 2026-05-05**：persona = 林雅芝（控制工程师），4.25 撞限额（当时在开发）。BACKLOG-1 准备阶段刚开始。
+
+**新 gate G1-deployment-target-decision（2026-05-05 凌晨）**：用户补充"最终会部署到 Linux 的 VPS 上"，office-hours v2 没问到这条，与当前 PowerShell-only 路径冲突。M1.5 在 BACKLOG-1 工程之前停手，等用户在 α(Win-local throw-away) / β(VPS-first) / γ(Docker-Desktop 中间路径) 三选项中拍板。详见 [[designs/2026-05-05-vps-deploy-target-impact]]。
 
 
 
