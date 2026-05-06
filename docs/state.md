@@ -2,13 +2,13 @@
 status: in-progress
 project: AI-Gateway
 active_backlog_item: 2026-05-05-friend-polish-admin-ui
-current_step: M1.5-1-stack-unstable-pending-user-decision
-blocked_at_gate: G4-stack-flaky-need-direction
+current_step: M1.5-2-virtual-key-issued-awaiting-tailscale
+blocked_at_gate: G-needs-tailscale-onboard
 last_commit: 1c9c3f9
 last_push: null
-retry_count: 5
+retry_count: 0
 started: 2026-05-03
-updated: 2026-05-05
+updated: 2026-05-06
 ---
 
 ## 范围变更（2026-05-05）
@@ -72,6 +72,48 @@ updated: 2026-05-05
 3. **继续 γ-WSL 路径**，给我具体退出条件（如 1 小时内不能稳定 5 分钟连绿就放弃）
 
 我推 1。判断错了 γ-WSL 是"省 10 分钟"——实际代价是 3 小时折腾 + stack 不稳。
+
+## M1.5-1 + 部分 M1.5-2 完成（2026-05-06 23:00）
+
+**Approach：Docker Desktop on Windows（用户已装）。**
+
+执行（CC 自驱，user 0 操作）：
+- ✅ Docker Desktop 启动（PID 自动 detach）+ daemon 验证 server 29.4.1
+- ✅ WSL apt-docker disable（systemctl disable + 已 inactive）
+- ✅ 杀裸机 copilot-api node PID 30828 释放 :4141
+- ✅ `.env` 启用 `COPILOT_HTTP_PROXY=http://host.docker.internal:7897`（Clash 桥接）
+- ✅ `docker compose build copilot-api`（image OK）
+- ✅ `docker compose up -d` 全 4 container Healthy（postgres / litellm / copilot-api / costpage）
+- ✅ smoke `node tests/smoke-test.js` **9/9 PASS**（含 stage 4 admin UI + stage 5 cost.html）
+- ✅ 5 分钟稳定性观察：30/30 全 200（解决凌晨"单次绿当稳定"教训）
+- ✅ M1.5-2 virtual key 创建：`linyazhi` alias，月 $20，白名单 sonnet-4-6/opus-4-7-copilot；落 `.secrets/virtual-keys.md`（gitignored）
+- ✅ 白名单验证：allowed → 200，non-whitelist → 401 `key_model_access_denied`
+
+**剩余（gated on user/朋友）：**
+- BACKLOG-3 Tailscale：用户机 + 林雅芝机各装一次 + 接受邀请
+- BACKLOG-2 完成 AC：林雅芝从她机器实际调一次（gated on Tailscale）
+- BACKLOG-4 完成 AC：林雅芝从浏览器看 cost.html（gated on Tailscale + 实际调用产生 spend）
+
+## G4 cleared — 用户拍 A（2026-05-06）
+
+用户选 A：装 Docker Desktop，朋友本周接入。
+
+**用户侧动作**（必须 user 自己跑，admin 边界）：
+1. 下载 Docker Desktop for Windows: https://www.docker.com/products/docker-desktop/
+2. 装包 → 重启（WSL2 backend 通常需要）
+3. 启动 Docker Desktop → 接受 license
+4. Settings → Resources → WSL Integration → 关掉 Ubuntu distro 的集成（避免和原 WSL apt-docker 冲突）；或者干脆别勾任何 distro，让 Docker Desktop 用自己的 docker-desktop VM
+5. 在 PowerShell 验证：`docker version` 看到 client + server 都 OK
+6. 喊我
+
+**Claude 侧动作**（user 喊我之后）：
+1. WSL Ubuntu：`sudo docker compose down -v` 清掉旧 stack（释放 4000/4141/4002/5432 端口）
+2. 处理 copilot-api OAuth token bind-mount 路径差异（WSL `~/.local/share/copilot-api` → Win Docker Desktop 看到的是 Win host 上的路径，可能要 copy token 或重跑 device flow）
+3. PowerShell 跑 `docker compose up -d` 起 stack
+4. 跑 smoke：`node tests/smoke-test.js`
+5. **稳定性观察**：连续 5 分钟 / 每 10 秒 1 次 curl `:4000/health/readiness`，全绿才报 PASS（凌晨教训：单次绿不算）
+6. 浏览器登 `:4000/ui` 创建 virtual key 给林雅芝（M1.5-2）
+7. 报告结果 + commit + push
 
 
 

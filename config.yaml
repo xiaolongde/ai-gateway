@@ -164,4 +164,5 @@ general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
   # M1.5: persist models / virtual keys / spend logs to Postgres so admin UI works.
   # Requires DATABASE_URL env var pointing at running Postgres (see docker-compose.yml).
-  store_model_in_db: true
+  # Set to true only when running with Docker Compose (Postgres available).
+  store_model_in_db: false

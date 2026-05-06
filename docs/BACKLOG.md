@@ -7,10 +7,10 @@
 ### M1.5 · Friend-Polish（4 卡，[[plans/2026-05-05-friend-polish-admin-ui]] / Docker-stack 路径）
 
 - [[plans/2026-05-05-friend-polish-admin-ui]] · M1.5 主 plan
-- M1.5-1 docker-compose stack 全栈站起（Postgres + LiteLLM + copilot-api + admin UI）
-- M1.5-2 admin UI virtual key 工作流（林雅芝 onboarding，README 文档化）
-- M1.5-3 Tailscale endpoint 暴露（朋友通过 tailnet 接入；本月内迁 VPS 后可去）
-- M1.5-4 朋友只读 cost mini-page（HTML + Chart.js + LiteLLM `/spend/logs`）
+- ~~M1.5-1 docker-compose stack 全栈站起~~ ✅ 2026-05-06（Docker Desktop on Win，4/4 Healthy，smoke 9/9，5min stability 30/30）
+- M1.5-2 admin UI virtual key 工作流（林雅芝 onboarding）— 🟡 key 已发（`linyazhi`），白名单验过；待 Tailscale 通后林雅芝实测调用
+- M1.5-3 Tailscale endpoint 暴露（朋友通过 tailnet 接入；本月内迁 VPS 后可去）— 待用户/朋友双侧装机
+- M1.5-4 朋友只读 cost mini-page（HTML + Chart.js + LiteLLM `/spend/logs`）— 🟡 plumbing ready（smoke stage 5 PASS）；待 Tailscale + 林雅芝产生 spend 数据后人工验
 
 > ~~M1.5 copilot-api supervisor (PS while-loop)~~ — **删**。Docker `restart: unless-stopped` 替代。
 
