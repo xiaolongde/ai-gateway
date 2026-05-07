@@ -24,8 +24,12 @@ services:
       POSTGRES_DB: litellm
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    # Postgres only needs to be reachable inside the compose network (litellm
+    # connects via service DNS `postgres:5432`). Binding to 127.0.0.1 keeps a
+    # host-side dev escape hatch (psql / pgAdmin) without exposing on LAN/VPS.
+    # On VPS: drop this `ports` block entirely.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U litellm -d litellm"]
       interval: 5s

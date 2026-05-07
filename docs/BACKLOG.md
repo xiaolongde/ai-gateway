@@ -14,12 +14,14 @@
 
 > ~~M1.5 copilot-api supervisor (PS while-loop)~~ — **删**。Docker `restart: unless-stopped` 替代。
 
-### M1.6 · VPS migration（本月内）
+### M1.6 · VPS migration（本月内，[[plans/2026-05-07-m16-vps-migration.md|plan]]）
 
-- M1.6-1 买 VPS（Hetzner / Vultr / 阿里轻量）
-- M1.6-2 同 `docker-compose.yml` 部到 VPS
-- M1.6-3 VPS 上 GitHub Copilot OAuth 重走（监 xiaolongde 账号是否触发异常检测）
-- M1.6-4 TLS / 反代 (Caddy) + 朋友 base URL 切换到公网
+- [[plans/2026-05-07-m16-vps-migration]] · M1.6 主 plan（5 卡）
+- M1.6-1 OAuth canary（burner GH 账号验风控，¥70 不可回收成本）
+- M1.6-2 VPS provisioning + Docker + ufw（推阿里轻量香港 ¥24/月）
+- M1.6-3 `.env` rotate + compose 改造（postgres/copilot-api 删 ports，litellm/costpage 绑 127.0.0.1）
+- M1.6-4 Caddy + Let's Encrypt TLS（gateway.<domain> + cost.<domain>）
+- M1.6-5 朋友 base URL 切公网 https + 本地 stack 1 周观察期后下线
 
 ### M2 · Future（撞墙再做）
 

@@ -1,14 +1,14 @@
 ---
 status: in-progress
 project: AI-Gateway
-active_backlog_item: 2026-05-05-friend-polish-admin-ui
-current_step: M1.5-2-virtual-key-issued-awaiting-tailscale
-blocked_at_gate: G-needs-tailscale-onboard
-last_commit: 1c9c3f9
+active_backlog_item: 2026-05-05-friend-polish-admin-ui + 2026-05-07-m16-vps-migration
+current_step: M1.5-awaiting-tailscale + M1.6-plan-written-awaiting-canary
+blocked_at_gate: G-needs-tailscale-onboard (M1.5) + G-needs-1week-soak (M1.6)
+last_commit: dd4f3fb
 last_push: null
 retry_count: 0
 started: 2026-05-03
-updated: 2026-05-06
+updated: 2026-05-07
 ---
 
 ## 范围变更（2026-05-05）
@@ -72,6 +72,16 @@ updated: 2026-05-06
 3. **继续 γ-WSL 路径**，给我具体退出条件（如 1 小时内不能稳定 5 分钟连绿就放弃）
 
 我推 1。判断错了 γ-WSL 是"省 10 分钟"——实际代价是 3 小时折腾 + stack 不稳。
+
+## M1.6 plan written + compose 预加固（2026-05-07）
+
+[[plans/2026-05-07-m16-vps-migration]] 5 卡 + risk + rollback + abort criteria 全栈写完。同时把本地 compose 的 postgres ports 从 `0.0.0.0:5432` 收紧到 `127.0.0.1:5432`（VPS-ready 预加固，本地 smoke 9/9 仍 PASS）。
+
+**关键决策点**（待用户）：
+- 何时启动 BACKLOG-1 OAuth canary（决定是否走 β 路径）
+- 域名选型 + VPS provider 拍板（默认推阿里轻量香港）
+
+**M1.6 必须等 M1.5 soak 1 周**（2026-05-06 → 2026-05-13）才启动，避免 stack 没真用过就上 VPS = 双层 debug 矩阵。
 
 ## M1.5-1 + 部分 M1.5-2 完成（2026-05-06 23:00）
 
