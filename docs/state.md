@@ -4,8 +4,8 @@ project: AI-Gateway
 active_backlog_item: 2026-05-05-friend-polish-admin-ui + 2026-05-07-m16-vps-migration
 current_step: M1.5-awaiting-tailscale + M1.6-plan-written-awaiting-canary
 blocked_at_gate: G-needs-tailscale-onboard (M1.5) + G-needs-1week-soak (M1.6)
-last_commit: dd4f3fb
-last_push: null
+last_commit: d19ad37
+last_push: d19ad37 (2026-05-07)
 retry_count: 0
 started: 2026-05-03
 updated: 2026-05-07
